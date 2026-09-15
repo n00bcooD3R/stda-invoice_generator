@@ -31,6 +31,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadBaseClients() {
+    const syncBtn = document.getElementById('btn-cloud-sync');
+    if (syncBtn) syncBtn.textContent = '☁️ Syncing...';
+
+    try {
+        // Try fetching latest clients.json via GitHub API proxy
+        const cloudResp = await fetch('/api/sync-clients');
+        if (cloudResp.ok) {
+            const data = await cloudResp.json();
+            if (data.success && Array.isArray(data.clients)) {
+                state.baseClients = data.clients;
+                if (syncBtn) syncBtn.textContent = '☁️ GitHub Live';
+                return;
+            }
+        }
+    } catch {
+        // Fall back to local clients.json
+    }
+
     try {
         const resp = await fetch('clients.json');
         if (resp.ok) {
@@ -40,6 +58,7 @@ async function loadBaseClients() {
         console.warn('Could not load clients.json:', e);
         state.baseClients = [];
     }
+    if (syncBtn) syncBtn.textContent = '☁️ GitHub DB';
 }
 
 function loadUserClients() {
@@ -54,6 +73,31 @@ function loadUserClients() {
 function saveUserClients() {
     localStorage.setItem('stda_user_clients', JSON.stringify(state.userClients));
     updateClientCountBadge();
+    syncClientsToCloud();
+}
+
+async function syncClientsToCloud() {
+    const syncBtn = document.getElementById('btn-cloud-sync');
+    if (syncBtn) syncBtn.textContent = '☁️ Syncing...';
+
+    try {
+        const allClients = getAllClients();
+        const resp = await fetch('/api/sync-clients', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clients: allClients })
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.success) {
+            if (syncBtn) syncBtn.textContent = '☁️ GitHub Synced';
+            showToast('Client database committed to GitHub!', 'success');
+        } else {
+            if (syncBtn) syncBtn.textContent = '☁️ Local Saved';
+        }
+    } catch {
+        if (syncBtn) syncBtn.textContent = '☁️ Local Saved';
+    }
 }
 
 function updateClientCountBadge() {
@@ -68,6 +112,14 @@ function setDefaultDate() {
 
 // ===================== EVENT BINDINGS =====================
 function bindEvents() {
+    // Cloud sync button
+    const btnCloudSync = document.getElementById('btn-cloud-sync');
+    if (btnCloudSync) {
+        btnCloudSync.addEventListener('click', () => {
+            syncClientsToCloud();
+        });
+    }
+
     // API Settings modal
     const btnApiSettings = document.getElementById('btn-api-settings');
     if (btnApiSettings) btnApiSettings.addEventListener('click', openApiSettingsModal);
