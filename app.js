@@ -903,13 +903,16 @@ function saveApiKey() {
     closeApiSettingsModal();
 }
 
-async function fetchGSTDetails(gstin) {
-    if (!gstin || gstin.trim().length !== 15) {
-        showToast('Please enter a valid 15-character GSTIN number', 'error');
+async function fetchGSTDetails(queryInput) {
+    const rawQuery = (queryInput || '').trim();
+    if (!rawQuery) {
+        showToast('Please enter a company name or 15-character GSTIN number', 'error');
         return null;
     }
 
-    const cleanGstin = gstin.trim().toUpperCase();
+    const is15Gstin = rawQuery.length === 15 && /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(rawQuery);
+    const cleanQuery = rawQuery.toUpperCase();
+
     const badge = document.getElementById('gst-fetch-badge');
     if (badge) {
         badge.style.display = 'inline-flex';
@@ -919,7 +922,8 @@ async function fetchGSTDetails(gstin) {
 
     try {
         const storedKey = localStorage.getItem('stda_sandbox_api_key') || '';
-        const queryUrl = `/api/gst-lookup?gstin=${encodeURIComponent(cleanGstin)}${storedKey ? '&apiKey=' + encodeURIComponent(storedKey) : ''}`;
+        const paramName = is15Gstin ? 'gstin' : 'query';
+        const queryUrl = `/api/gst-lookup?${paramName}=${encodeURIComponent(cleanQuery)}${storedKey ? '&apiKey=' + encodeURIComponent(storedKey) : ''}`;
         const resp = await fetch(queryUrl);
         const data = await resp.json();
 
@@ -930,14 +934,15 @@ async function fetchGSTDetails(gstin) {
             }
 
             // Auto-fill Buyer fields if present
+            const finalGstin = data.gstin || (is15Gstin ? cleanQuery : '');
             if (data.name) document.getElementById('buyer-name').value = data.name;
             if (data.address) document.getElementById('buyer-address').value = data.address;
             if (data.state) document.getElementById('buyer-state').value = data.state;
             if (data.stateCode) document.getElementById('buyer-state-code').value = data.stateCode;
-            document.getElementById('buyer-gstin').value = cleanGstin;
+            document.getElementById('buyer-gstin').value = finalGstin;
 
             // Automatically select CGST+SGST (state 27) vs IGST (other states)
-            checkStateGST(data.stateCode);
+            checkStateGST(data.stateCode || '29');
 
             // Sync consignee if checked
             if (document.getElementById('same-as-buyer').checked) {
@@ -948,14 +953,14 @@ async function fetchGSTDetails(gstin) {
             if (data.name) {
                 autoSaveClientFromGST({
                     name: data.name,
-                    address: data.address,
-                    state: data.state,
-                    stateCode: data.stateCode,
-                    gstin: cleanGstin
+                    address: data.address || '',
+                    state: data.state || 'Karnataka',
+                    stateCode: data.stateCode || '29',
+                    gstin: finalGstin
                 });
             }
 
-            showToast(`GST Details Fetched for ${data.name || cleanGstin}!`, 'success');
+            showToast(`Details loaded for ${data.name || cleanQuery}!`, 'success');
             return data;
         } else {
             if (badge) {

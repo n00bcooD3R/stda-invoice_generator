@@ -19,13 +19,15 @@ export default async function handler(req, res) {
         return;
     }
 
-    const { gstin, apiKey: userApiKey } = req.query;
+    const { gstin, query: rawQuery, apiKey: userApiKey } = req.query;
+    const query = (gstin || rawQuery || '').trim();
 
-    if (!gstin || gstin.trim().length !== 15) {
-        return res.status(400).json({ error: 'Please provide a valid 15-digit GSTIN' });
+    if (!query) {
+        return res.status(400).json({ error: 'Please provide a company name or 15-digit GSTIN number' });
     }
 
-    const cleanGstin = gstin.trim().toUpperCase();
+    const is15Gstin = query.length === 15 && /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(query);
+    const cleanGstin = is15Gstin ? query.toUpperCase() : '';
 
     // Indian State Codes mapping
     const stateCodes = {
@@ -40,9 +42,9 @@ export default async function handler(req, res) {
         '36': 'Telangana', '37': 'Andhra Pradesh (New)', '38': 'Ladakh', '97': 'Other Territory'
     };
 
-    const stateCodeDigits = cleanGstin.substring(0, 2);
-    const estimatedState = stateCodes[stateCodeDigits] || '';
-    const panNumber = cleanGstin.substring(2, 12);
+    const stateCodeDigits = is15Gstin ? cleanGstin.substring(0, 2) : '29';
+    const estimatedState = stateCodes[stateCodeDigits] || 'Karnataka';
+    const panNumber = is15Gstin ? cleanGstin.substring(2, 12) : '';
 
     // API Key from Vercel environment variables or passed from UI
     const apiKey = userApiKey || process.env.SANDBOX_API_KEY || process.env.GST_API_KEY;
