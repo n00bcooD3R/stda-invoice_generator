@@ -8,5 +8,13 @@
         "contact": "",
         "phone": "",
         "email": ""
+    },
+    {
+        "id": "user_1789466769139",
+        "name": "GSTIN 29AACCR1288G1Z7",
+        "address": "Karnataka",
+        "state": "Karnataka",
+        "stateCode": "29",
+        "gstin": "29AACCR1288G1Z7"
     }
 ]
