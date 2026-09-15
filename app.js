@@ -318,6 +318,16 @@ function showDropdownResults(results, query) {
     dropdown.classList.add('active');
 }
 
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 async function triggerOnlineFetch() {
     const input = document.getElementById('client-search');
     let query = (input.value || '').trim();
@@ -343,23 +353,29 @@ async function triggerOnlineFetch() {
         if (statusDiv) {
             statusDiv.className = 'online-status-bar success';
             statusDiv.innerHTML = `
-                <span>✅ Fetched: <strong>${data.name || cleanGstin}</strong> (${data.state || ''} ${data.stateCode ? '[' + data.stateCode + ']' : ''})</span>
-                <button class="btn btn-secondary btn-sm" onclick="saveFetchedClientLocally('${data.name}', '${data.gstin}', '${(data.address || '').replace(/'/g, "\\'")}', '${data.state}', '${data.stateCode}')">💾 Saved to Clients</button>
+                <span>✅ Fetched: <strong>${escapeHtml(data.name || cleanGstin)}</strong> (${data.state || ''} ${data.stateCode ? '[' + data.stateCode + ']' : ''})</span>
+                <button class="btn btn-secondary btn-sm" id="btn-save-fetched-client">💾 Save to Clients</button>
             `;
+            const saveBtn = document.getElementById('btn-save-fetched-client');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', () => {
+                    saveFetchedClientLocally(data.name, data.gstin || (cleanGstin.length === 15 ? cleanGstin : ''), data.address || '', data.state || 'Karnataka', data.stateCode || '29');
+                });
+            }
         }
         // Auto select fetched client
         selectClient({
             name: data.name,
-            gstin: cleanGstin,
-            address: data.address,
-            state: data.state,
-            stateCode: data.stateCode
+            gstin: data.gstin || (cleanGstin.length === 15 ? cleanGstin : ''),
+            address: data.address || '',
+            state: data.state || 'Karnataka',
+            stateCode: data.stateCode || '29'
         });
     } else {
         if (statusDiv) {
             statusDiv.className = 'online-status-bar warning';
             statusDiv.innerHTML = `
-                <span>⚠️ Could not fetch details live for "${query}". Check GSTIN format or network connection.</span>
+                <span>⚠️ Could not fetch details live for "${escapeHtml(query)}". Check GSTIN format or network connection.</span>
                 <button class="btn btn-ghost btn-sm" onclick="document.getElementById('online-fetch-status').style.display='none'">✕</button>
             `;
         }
