@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Professional Quotation Maker for SensoTech Design & Automation - Create and export tax invoices and quotations as PDF">
+    <title>Quotation Maker | STDA</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+    <!-- ============ APP HEADER ============ -->
+    <header class="app-header">
+        <div class="logo-container">
+            <img src="header_img_0_0.png" alt="STDA Logo" id="stda-logo">
+            <div class="logo-text">
+                <span class="company-name">SensoTech Design & Automation</span>
+                <span class="app-title">Quotation Maker</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-ghost btn-sm" id="btn-api-settings" title="GST API Settings">
+                ⚙️ GST API
+            </button>
+            <button class="btn btn-ghost btn-sm" id="btn-manage-clients" title="Manage Clients">
+                👥 Clients
+            </button>
+            <button class="btn btn-ghost btn-sm" id="btn-new-quotation" title="New Quotation">
+                📄 New
+            </button>
+        </div>
+    </header>
+
+    <!-- ============ MAIN CONTAINER ============ -->
+    <main class="app-container">
+
+        <!-- ============ CLIENT SEARCH ============ -->
+        <section class="section-card" id="section-client-search">
+            <div class="section-header">
+                <div class="section-icon blue">🔍</div>
+                <h2>Client Lookup</h2>
+                <span class="section-badge" id="client-count-badge">0 clients</span>
+            </div>
+            <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="client-search" placeholder="Search by company name or GSTIN number..." autocomplete="off">
+                <button class="search-clear" id="search-clear">✕</button>
+                <div class="search-dropdown" id="search-dropdown"></div>
+            </div>
+            <div class="client-actions-bar" id="selected-client-bar">
+                <!-- Selected client tag appears here -->
+            </div>
+        </section>
+
+        <!-- ============ QUOTATION DETAILS ============ -->
+        <section class="section-card" id="section-quotation-details">
+            <div class="section-header">
+                <div class="section-icon cyan">📋</div>
+                <h2>Quotation Details</h2>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Quotation No. <span class="required">*</span></label>
+                    <input type="text" id="quotation-no" placeholder="e.g. STDA/2627/001">
+                </div>
+                <div class="form-group">
+                    <label>Date <span class="required">*</span></label>
+                    <input type="date" id="quotation-date">
+                </div>
+                <div class="form-group">
+                    <label>Reference No. & Date</label>
+                    <input type="text" id="reference-no" placeholder="Reference number">
+                </div>
+                <div class="form-group">
+                    <label>Buyer's Order No.</label>
+                    <input type="text" id="buyer-order-no" placeholder="Buyer's order number">
+                </div>
+                <div class="form-group">
+                    <label>Buyer's Order Date</label>
+                    <input type="date" id="buyer-order-date">
+                </div>
+                <div class="form-group">
+                    <label>Delivery Note</label>
+                    <input type="text" id="delivery-note" placeholder="Delivery note">
+                </div>
+                <div class="form-group">
+                    <label>Delivery Note Date</label>
+                    <input type="date" id="delivery-note-date">
+                </div>
+                <div class="form-group">
+                    <label>Dispatch Doc No.</label>
+                    <input type="text" id="dispatch-doc-no" placeholder="Dispatch document number">
+                </div>
+                <div class="form-group">
+                    <label>Dispatched Through</label>
+                    <input type="text" id="dispatched-through" placeholder="Courier / transport">
+                </div>
+                <div class="form-group">
+                    <label>Destination</label>
+                    <input type="text" id="destination" placeholder="Destination">
+                </div>
+                <div class="form-group full-width">
+                    <label>Mode / Terms of Payment</label>
+                    <input type="text" id="payment-terms" placeholder="e.g. 50% Advance, 40% Against Delivery, 10% Installation">
+                </div>
+                <div class="form-group full-width">
+                    <label>Other References</label>
+                    <input type="text" id="other-references" placeholder="Any other references">
+                </div>
+                <div class="form-group full-width">
+                    <label>Terms of Delivery</label>
+                    <input type="text" id="terms-delivery" placeholder="Delivery terms">
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ BUYER / CONSIGNEE ============ -->
+        <section class="section-card" id="section-buyer-consignee">
+            <div class="section-header">
+                <div class="section-icon indigo">🏢</div>
+                <h2>Buyer & Consignee Details</h2>
+            </div>
+            <div class="two-column">
+                <!-- Buyer (Bill to) -->
+                <div>
+                    <h3 style="font-size: 14px; font-weight: 600; color: var(--accent-sky); margin-bottom: 14px;">
+                        Buyer (Bill to)
+                    </h3>
+                    <div class="form-grid" style="grid-template-columns: 1fr;">
+                        <div class="form-group">
+                            <label>Company Name <span class="required">*</span></label>
+                            <input type="text" id="buyer-name" placeholder="Company name">
+                        </div>
+                        <div class="form-group">
+                            <label>Address <span class="required">*</span></label>
+                            <textarea id="buyer-address" placeholder="Full address" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>State</label>
+                            <input type="text" id="buyer-state" placeholder="e.g. Karnataka">
+                        </div>
+                        <div class="form-group">
+                            <label>State Code</label>
+                            <input type="text" id="buyer-state-code" placeholder="e.g. 29">
+                        </div>
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <label style="margin-bottom: 0;">GSTIN/UIN</label>
+                                <span id="gst-fetch-badge" class="gst-badge" style="display: none;"></span>
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <input type="text" id="buyer-gstin" placeholder="e.g. 27AAACG1234F1Z5" style="text-transform: uppercase;">
+                                <button type="button" class="btn btn-ghost btn-sm" id="btn-fetch-buyer-gst" title="Fetch details via GST API" style="white-space: nowrap;">
+                                    🔍 Fetch API
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Consignee (Ship to) -->
+                <div>
+                    <h3 style="font-size: 14px; font-weight: 600; color: var(--accent-sky); margin-bottom: 14px;">
+                        Consignee (Ship to)
+                    </h3>
+                    <div class="same-as-buyer">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="same-as-buyer" checked>
+                            <label for="same-as-buyer">Same as Buyer</label>
+                        </div>
+                    </div>
+                    <div id="consignee-fields">
+                        <div class="form-grid" style="grid-template-columns: 1fr;">
+                            <div class="form-group">
+                                <label>Company Name</label>
+                                <input type="text" id="consignee-name" placeholder="Company name" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Address</label>
+                                <textarea id="consignee-address" placeholder="Full address" rows="3" disabled></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>State</label>
+                                <input type="text" id="consignee-state" placeholder="e.g. Karnataka" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>State Code</label>
+                                <input type="text" id="consignee-state-code" placeholder="e.g. 29" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>GSTIN/UIN</label>
+                                <input type="text" id="consignee-gstin" placeholder="e.g. 29AAACB1782H1ZO" disabled>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ ITEMS TABLE ============ -->
+        <section class="section-card" id="section-items">
+            <div class="section-header">
+                <div class="section-icon emerald">📦</div>
+                <h2>Items / Services</h2>
+                <span class="section-badge" id="items-count-badge">0 items</span>
+            </div>
+
+            <div class="items-table-wrapper">
+                <table class="items-table" id="items-table">
+                    <thead>
+                        <tr>
+                            <th class="col-sl">Sl.</th>
+                            <th class="col-desc">Description of Goods / Services</th>
+                            <th class="col-hsn">HSN/SAC</th>
+                            <th class="col-qty">Qty</th>
+                            <th class="col-unit">Unit</th>
+                            <th class="col-rate">Rate (₹)</th>
+                            <th class="col-disc">Disc %</th>
+                            <th class="col-amount">Amount (₹)</th>
+                            <th class="col-action"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-tbody">
+                        <!-- Dynamic rows -->
+                    </tbody>
+                </table>
+                <div class="add-item-row">
+                    <button class="btn btn-ghost btn-sm" id="btn-add-item">
+                        ➕ Add Item
+                    </button>
+                </div>
+            </div>
+
+            <!-- GST Settings -->
+            <div style="margin-top: 20px;">
+                <div class="form-grid-3">
+                    <div class="form-group">
+                        <label>GST Type</label>
+                        <div class="gst-toggle" id="gst-toggle">
+                            <button class="active" data-type="intra">CGST + SGST</button>
+                            <button data-type="inter">IGST</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>GST Rate (%)</label>
+                        <select id="gst-rate">
+                            <option value="0">0%</option>
+                            <option value="5">5%</option>
+                            <option value="12">12%</option>
+                            <option value="18" selected>18%</option>
+                            <option value="28">28%</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>GST Calculation</label>
+                        <select id="gst-calculation">
+                            <option value="exclusive">Exclusive (added on top)</option>
+                            <option value="inclusive">Inclusive (included in rate)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Totals -->
+            <div class="totals-panel">
+                <div class="totals-grid">
+                    <div class="totals-row">
+                        <span class="total-label">Subtotal</span>
+                        <span class="total-value" id="subtotal">₹ 0.00</span>
+                    </div>
+                    <div class="totals-row" id="cgst-row">
+                        <span class="total-label" id="cgst-label">CGST @ 9%</span>
+                        <span class="total-value" id="cgst-value">₹ 0.00</span>
+                    </div>
+                    <div class="totals-row" id="sgst-row">
+                        <span class="total-label" id="sgst-label">SGST @ 9%</span>
+                        <span class="total-value" id="sgst-value">₹ 0.00</span>
+                    </div>
+                    <div class="totals-row" id="igst-row" style="display: none;">
+                        <span class="total-label" id="igst-label">IGST @ 18%</span>
+                        <span class="total-value" id="igst-value">₹ 0.00</span>
+                    </div>
+                    <div class="totals-row grand-total">
+                        <span class="total-label">Grand Total</span>
+                        <span class="total-value" id="grand-total">₹ 0.00</span>
+                    </div>
+                </div>
+            </div>
+            <div class="amount-words" id="amount-words">INR Zero Only</div>
+        </section>
+
+        <!-- ============ BANK DETAILS & DECLARATION ============ -->
+        <section class="section-card" id="section-bank">
+            <div class="section-header">
+                <div class="section-icon amber">🏦</div>
+                <h2>Bank Details & Declaration</h2>
+            </div>
+            <div class="bank-details-grid">
+                <div>
+                    <div class="bank-info-box">
+                        <h4>Company's Bank Details</h4>
+                        <div class="form-grid" style="grid-template-columns: 1fr;">
+                            <div class="form-group">
+                                <label>A/c Holder's Name</label>
+                                <input type="text" id="bank-holder" placeholder="Account holder name">
+                            </div>
+                            <div class="form-group">
+                                <label>Bank Name</label>
+                                <input type="text" id="bank-name" placeholder="Bank name">
+                            </div>
+                            <div class="form-group">
+                                <label>A/c No.</label>
+                                <input type="text" id="bank-account" placeholder="Account number">
+                            </div>
+                            <div class="form-group">
+                                <label>Branch & IFS Code</label>
+                                <input type="text" id="bank-ifsc" placeholder="Branch & IFSC">
+                            </div>
+                            <div class="form-group">
+                                <label>SWIFT Code</label>
+                                <input type="text" id="bank-swift" placeholder="SWIFT code (optional)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="bank-info-box">
+                        <h4>Declaration</h4>
+                        <div class="form-group">
+                            <textarea id="declaration-text" rows="5" style="min-height: 140px;">We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ EXPORT SECTION ============ -->
+        <section class="section-card" id="section-export">
+            <div class="export-section">
+                <div class="export-icon">📄</div>
+                <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Export Quotation as PDF</h2>
+                <p>Generate a professional PDF quotation matching the Tally invoice format with STDA branding.</p>
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn btn-primary btn-lg" id="btn-preview-pdf">
+                        👁 Preview PDF
+                    </button>
+                    <button class="btn btn-success btn-lg" id="btn-export-pdf">
+                        ⬇ Download PDF
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============ CLIENT MANAGER MODAL ============ -->
+    <div class="modal-overlay" id="modal-client-manager">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>👥 Manage Clients</h3>
+                <button class="modal-close" id="close-client-modal">✕</button>
+            </div>
+            <div style="margin-bottom: 16px;">
+                <button class="btn btn-primary btn-sm" id="btn-add-new-client">➕ Add New Client</button>
+            </div>
+            <div class="clients-list" id="clients-list">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ ADD/EDIT CLIENT MODAL ============ -->
+    <div class="modal-overlay" id="modal-client-form">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="client-form-title">➕ Add Client</h3>
+                <button class="modal-close" id="close-client-form">✕</button>
+            </div>
+            <div class="form-grid" style="grid-template-columns: 1fr;">
+                <div class="form-group">
+                    <label>Company Name <span class="required">*</span></label>
+                    <input type="text" id="cf-name" placeholder="Company name">
+                </div>
+                <div class="form-group">
+                    <label>Address <span class="required">*</span></label>
+                    <textarea id="cf-address" placeholder="Full address" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>State</label>
+                    <input type="text" id="cf-state" placeholder="e.g. Karnataka">
+                </div>
+                <div class="form-group">
+                    <label>State Code</label>
+                    <input type="text" id="cf-state-code" placeholder="e.g. 29">
+                </div>
+                <div class="form-group">
+                    <label>GSTIN/UIN</label>
+                    <input type="text" id="cf-gstin" placeholder="e.g. 29AAACB1782H1ZO" style="text-transform: uppercase;">
+                </div>
+                <div class="form-group">
+                    <label>Contact Person</label>
+                    <input type="text" id="cf-contact" placeholder="Contact person name">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" id="cf-phone" placeholder="Phone number">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="cf-email" placeholder="Email address">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" id="btn-cancel-client">Cancel</button>
+                <button class="btn btn-success" id="btn-save-client">💾 Save Client</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ GST API SETTINGS MODAL ============ -->
+    <div class="modal-overlay" id="modal-api-settings">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>⚙️ Sandbox.co.in GST API Settings</h3>
+                <button class="modal-close" id="close-api-settings">✕</button>
+            </div>
+            <div class="modal-body" style="font-size: 13px; line-height: 1.6; color: var(--text-muted);">
+                <p style="margin-bottom: 12px;">
+                    This app connects to <strong>Sandbox.co.in GSP API</strong> for instant live GSTIN search, auto-filling business legal name, trade name, full address, and state code.
+                </p>
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="color: var(--text-heading); font-weight: 600;">Sandbox API Key (Optional Override)</label>
+                    <input type="password" id="input-api-key" placeholder="Paste your Sandbox.co.in API Key here..." autocomplete="off">
+                    <small style="color: var(--text-dim); display: block; margin-top: 4px;">
+                        🔑 On Vercel, set <code>SANDBOX_API_KEY</code> in <strong>Environment Variables</strong> for automated production lookups.
+                    </small>
+                </div>
+                <div style="background: rgba(30, 41, 59, 0.6); padding: 12px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                    <div style="color: var(--accent-sky); font-weight: 600; margin-bottom: 4px;">⚡ How Option B works on Vercel:</div>
+                    <ul style="padding-left: 18px; margin: 0;">
+                        <li>Vercel serves serverless endpoint at <code>/api/gst-lookup?gstin=...</code></li>
+                        <li>Typing any 15-digit GSTIN or clicking 🔍 Fetch API calls Sandbox.co.in.</li>
+                        <li>Client details automatically fill into Buyer fields and store locally for offline access!</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" id="btn-cancel-api-settings">Close</button>
+                <button class="btn btn-primary" id="btn-save-api-key">💾 Save Key</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ TOAST CONTAINER ============ -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="app.js"></script>
+    <script src="pdf-generator.js"></script>
+</body>
+</html>
