@@ -1,14 +1,4 @@
 {
   "version": 2,
-  "cleanUrls": true,
-  "routes": [
-    {
-      "src": "/api/gst-lookup",
-      "dest": "/api/gst-lookup.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ]
+  "cleanUrls": true
 }
