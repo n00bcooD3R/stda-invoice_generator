@@ -962,7 +962,7 @@ async function fetchGSTDetails(queryInput) {
 
             // Sync consignee if checked
             if (document.getElementById('same-as-buyer').checked) {
-                syncConsigneeWithBuyer();
+                syncConsigneeFromBuyer();
             }
 
             // Save client to user clients list so future searches are instant
