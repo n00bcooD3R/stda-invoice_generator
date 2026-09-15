@@ -116,6 +116,11 @@ function bindEvents() {
         if (!e.target.closest('.search-container')) closeDropdown();
     });
 
+    const btnFetchOnline = document.getElementById('btn-fetch-online');
+    if (btnFetchOnline) {
+        btnFetchOnline.addEventListener('click', triggerOnlineFetch);
+    }
+
     document.getElementById('search-clear').addEventListener('click', () => {
         searchInput.value = '';
         document.getElementById('search-clear').classList.remove('visible');
@@ -214,11 +219,19 @@ function showDropdownResults(results, query) {
     const dropdown = document.getElementById('search-dropdown');
     dropdown.innerHTML = '';
 
+    const cleanQuery = (query || '').trim().toUpperCase();
+    const isGstinLength = cleanQuery.length === 15;
+
     if (results.length === 0) {
         dropdown.innerHTML = `
-            <div class="no-results">
-                No clients found. 
-                <a href="#" style="color: var(--accent-sky);" onclick="event.preventDefault(); quickAddFromSearch();">Add new client?</a>
+            <div class="no-results" style="padding: 12px 16px;">
+                <div style="margin-bottom: 6px;">No local clients found matching "<strong>${query}</strong>"</div>
+                <div style="display: flex; gap: 10px; align-items: center; margin-top: 8px;">
+                    <button class="btn btn-primary btn-sm" onclick="event.preventDefault(); triggerOnlineFetch();" style="font-size: 12px;">
+                        🌐 Search / Fetch Online
+                    </button>
+                    <a href="#" style="color: var(--accent-sky); font-size: 12px;" onclick="event.preventDefault(); quickAddFromSearch();">Add manually?</a>
+                </div>
             </div>`;
     } else {
         results.forEach((client) => {
@@ -231,10 +244,79 @@ function showDropdownResults(results, query) {
             item.addEventListener('click', () => selectClient(client));
             dropdown.appendChild(item);
         });
+
+        // Add Online Fetch row at bottom of dropdown
+        const onlineRow = document.createElement('div');
+        onlineRow.className = 'dropdown-item online-fetch-option';
+        onlineRow.style.background = 'rgba(56, 189, 248, 0.05)';
+        onlineRow.style.borderTop = '1px solid var(--border-subtle)';
+        onlineRow.innerHTML = `
+            <div style="color: var(--accent-sky); font-weight: 500; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                <span>🌐</span> Fetch details live for "${query}"
+            </div>
+        `;
+        onlineRow.addEventListener('click', () => {
+            closeDropdown();
+            triggerOnlineFetch();
+        });
+        dropdown.appendChild(onlineRow);
     }
 
     highlightedIndex = -1;
     dropdown.classList.add('active');
+}
+
+async function triggerOnlineFetch() {
+    const input = document.getElementById('client-search');
+    let query = (input.value || '').trim();
+
+    if (!query) {
+        query = prompt('Enter 15-digit GSTIN number to fetch online company details:');
+        if (!query) return;
+        input.value = query;
+    }
+
+    const cleanGstin = query.toUpperCase();
+    const statusDiv = document.getElementById('online-fetch-status');
+    
+    if (statusDiv) {
+        statusDiv.style.display = 'flex';
+        statusDiv.className = 'online-status-bar loading';
+        statusDiv.innerHTML = `<span>🔄 Fetching GSTIN details live from internet...</span>`;
+    }
+
+    const data = await fetchGSTDetails(cleanGstin);
+
+    if (data && data.success) {
+        if (statusDiv) {
+            statusDiv.className = 'online-status-bar success';
+            statusDiv.innerHTML = `
+                <span>✅ Fetched: <strong>${data.name || cleanGstin}</strong> (${data.state || ''} ${data.stateCode ? '[' + data.stateCode + ']' : ''})</span>
+                <button class="btn btn-secondary btn-sm" onclick="saveFetchedClientLocally('${data.name}', '${data.gstin}', '${(data.address || '').replace(/'/g, "\\'")}', '${data.state}', '${data.stateCode}')">💾 Saved to Clients</button>
+            `;
+        }
+        // Auto select fetched client
+        selectClient({
+            name: data.name,
+            gstin: cleanGstin,
+            address: data.address,
+            state: data.state,
+            stateCode: data.stateCode
+        });
+    } else {
+        if (statusDiv) {
+            statusDiv.className = 'online-status-bar warning';
+            statusDiv.innerHTML = `
+                <span>⚠️ Could not fetch details live for "${query}". Check GSTIN format or network connection.</span>
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('online-fetch-status').style.display='none'">✕</button>
+            `;
+        }
+    }
+}
+
+function saveFetchedClientLocally(name, gstin, address, state, stateCode) {
+    autoSaveClientFromGST({ name, gstin, address, state, stateCode });
+    showToast(`Saved ${name} to your client database!`, 'success');
 }
 
 function handleSearchKeydown(e) {

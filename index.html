@@ -45,10 +45,14 @@
             </div>
             <div class="search-container">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="client-search" placeholder="Search by company name or GSTIN number..." autocomplete="off">
+                <input type="text" id="client-search" placeholder="Search by company name or 15-digit GSTIN number..." autocomplete="off">
                 <button class="search-clear" id="search-clear">✕</button>
+                <button class="btn btn-primary btn-sm" id="btn-fetch-online" title="Fetch GSTIN details live from internet">
+                    🌐 Fetch Online
+                </button>
                 <div class="search-dropdown" id="search-dropdown"></div>
             </div>
+            <div id="online-fetch-status" class="online-status-bar" style="display: none;"></div>
             <div class="client-actions-bar" id="selected-client-bar">
                 <!-- Selected client tag appears here -->
             </div>
