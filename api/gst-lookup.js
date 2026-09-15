@@ -49,8 +49,8 @@ export default async function handler(req, res) {
     // API Key from Vercel environment variables or passed from UI
     const apiKey = userApiKey || process.env.SANDBOX_API_KEY || process.env.GST_API_KEY;
 
-    // METHOD 1: Try Sandbox API if API key is present
-    if (apiKey) {
+    // METHOD 1: Try Sandbox API if API key is present and querying a 15-digit GSTIN
+    if (apiKey && is15Gstin) {
         try {
             const response = await fetch(`https://api.sandbox.co.in/gsp/public/gstin/${cleanGstin}`, {
                 method: 'GET',
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
                     success: true,
                     source: 'sandbox',
                     isMock: false,
-                    name: tradeName || legalName,
+                    name: tradeName || legalName || cleanGstin,
                     legalName: legalName,
                     tradeName: tradeName,
                     gstin: cleanGstin,
@@ -109,60 +109,67 @@ export default async function handler(req, res) {
         }
     }
 
-    // METHOD 2: Try Open Public GST Proxy Endpoints (No Key Required)
-    try {
-        const publicEndpoints = [
-            `https://sheet.gstinapi.com/v1/15digit/${cleanGstin}`,
-            `https://api.postalpincode.in/gstin/${cleanGstin}`
-        ];
+    // METHOD 2: Try Open Public GST Proxy Endpoints if 15-digit GSTIN
+    if (is15Gstin) {
+        try {
+            const publicEndpoints = [
+                `https://sheet.gstinapi.com/v1/15digit/${cleanGstin}`,
+                `https://api.postalpincode.in/gstin/${cleanGstin}`
+            ];
 
-        for (const endpoint of publicEndpoints) {
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
-                
-                const pubRes = await fetch(endpoint, { signal: controller.signal });
-                clearTimeout(timeoutId);
+            for (const endpoint of publicEndpoints) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3000);
+                    
+                    const pubRes = await fetch(endpoint, { signal: controller.signal });
+                    clearTimeout(timeoutId);
 
-                if (pubRes.ok) {
-                    const pubData = await pubRes.json();
-                    if (pubData && (pubData.legal_name || pubData.trade_name || pubData.lgnm)) {
-                        const lName = pubData.legal_name || pubData.lgnm || '';
-                        const tName = pubData.trade_name || pubData.tradeNam || lName;
-                        const addr = pubData.address || pubData.pradr?.addr || '';
-                        return res.status(200).json({
-                            success: true,
-                            source: 'public_api',
-                            isMock: false,
-                            name: tName || lName,
-                            legalName: lName,
-                            tradeName: tName,
-                            gstin: cleanGstin,
-                            address: typeof addr === 'string' ? addr : estimatedState,
-                            stateCode: stateCodeDigits,
-                            state: estimatedState,
-                            status: pubData.status || 'Active',
-                            pan: panNumber
-                        });
+                    if (pubRes.ok) {
+                        const pubData = await pubRes.json();
+                        if (pubData && (pubData.legal_name || pubData.trade_name || pubData.lgnm)) {
+                            const lName = pubData.legal_name || pubData.lgnm || '';
+                            const tName = pubData.trade_name || pubData.tradeNam || lName;
+                            const addr = pubData.address || pubData.pradr?.addr || '';
+                            return res.status(200).json({
+                                success: true,
+                                source: 'public_api',
+                                isMock: false,
+                                name: tName || lName || cleanGstin,
+                                legalName: lName,
+                                tradeName: tName,
+                                gstin: cleanGstin,
+                                address: typeof addr === 'string' ? addr : estimatedState,
+                                stateCode: stateCodeDigits,
+                                state: estimatedState,
+                                status: pubData.status || 'Active',
+                                pan: panNumber
+                            });
+                        }
                     }
+                } catch {
+                    // Continue to next public endpoint
                 }
-            } catch {
-                // Continue to next public endpoint
             }
+        } catch {
+            // Fall through to offline estimation
         }
-    } catch {
-        // Fall through to offline estimation
     }
 
-    // METHOD 3: Offline Extraction (Guaranteed Response)
+    // METHOD 3: Guaranteed Extraction & Auto-Fill Response
+    const fallbackName = is15Gstin ? `GSTIN ${cleanGstin}` : query.toUpperCase();
     return res.status(200).json({
         success: true,
         source: 'offline_extractor',
         isMock: true,
+        name: fallbackName,
+        legalName: fallbackName,
+        tradeName: fallbackName,
         gstin: cleanGstin,
+        address: estimatedState,
         stateCode: stateCodeDigits,
         state: estimatedState,
         pan: panNumber,
-        message: 'No external API key provided or API limit reached. Auto-extracted State & PAN from GSTIN.'
+        message: 'Auto-extracted details from input.'
     });
 }
